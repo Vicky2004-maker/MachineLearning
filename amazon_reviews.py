@@ -53,10 +53,10 @@ def get_labels_texts(file, n=10000):
 
 
 # %% Load the Test Data into DataFrame
-test_data = get_labels_texts("E:/Dataset/Amazon Reviews/Test Data/test.ft.txt", 1000)
+test_data = get_labels_texts("E:/Dataset/Amazon Reviews/Test Data/test.ft.txt", 100)
 
 # %% Load the Train Data into DataFrame
-train_data = get_labels_texts("E:/Dataset/Amazon Reviews/Train Data/train.ft.txt")
+train_data = get_labels_texts("E:/Dataset/Amazon Reviews/Train Data/train.ft.txt", 500)
 
 # %% Create a Frequency Distribution Table
 vectorizer_train = CountVectorizer(stop_words=['aa', 'aaa', 'aas', 'abc'])
