@@ -1,5 +1,8 @@
 import numpy as np
-from tensorflow.keras.datasets import mnist
+from keras.datasets import mnist
+
+
+#from tensorflow.python.keras.datasets import mnist
 
 
 # %%

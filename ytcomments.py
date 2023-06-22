@@ -5,7 +5,6 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from googleapiclient.discovery import build
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-
 # %%
 
 api_key = 'AIzaSyC5DQZcR9XAUt4uFBfZJJcOBCke5vi_N_c'
@@ -48,7 +47,7 @@ def get_video_comments(video_id, num=100):
     return comments
 
 
-video_id = "nF_YtQkcyAM"
+video_id = "hahnBwwpP9A"
 
 all_comments = get_video_comments(video_id, 100)
 

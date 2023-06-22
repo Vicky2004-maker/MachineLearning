@@ -28,7 +28,7 @@ featuresets = [(document_features(d), c) for (d, c) in documents]
 train_set, test_set = featuresets[100:], featuresets[:100]
 classifier = nltk.NaiveBayesClassifier.train(train_set)
 
-print("Accuracy : ", nltk.classify.accuracy(classifier, test_set))
+print("Accuracy : ", nltk.classify.accuracy(classifier, test_set) * 100)
 
 # %%
 classifier.show_most_informative_features(100)
