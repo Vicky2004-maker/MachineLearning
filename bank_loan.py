@@ -23,6 +23,7 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.4, random_
 lr = LogisticRegression(max_iter=1000)
 lr.fit(X_train, Y_train)
 Y_predictions = lr.predict(X_test)
+print(Y_predictions)
 print(accuracy_score(Y_test, Y_predictions) * 100)
 
 # %%

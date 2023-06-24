@@ -5,23 +5,25 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
+
 # %%
 
-remove_html_tags = lambda text: BeautifulSoup(text, "html.parser").get_text()
+def remove_html_tags(text):
+    return BeautifulSoup(text, "html.parser").get_text()
 
 
 def preprocess_review(reviews):
-    for i in range(len(reviews)):
-        reviews[i] = (reviews[i]).lower()
-        reviews[i] = reviews[i].translate(str.maketrans('', '', string.punctuation))
-        reviews[i] = reviews[i].translate(str.maketrans('', '', string.digits))
-        reviews[i] = contractions.fix(reviews[i])
-        reviews[i] = remove_html_tags(reviews[i])
+    for _i in range(len(reviews)):
+        reviews[_i] = (reviews[_i]).lower()
+        reviews[_i] = reviews[_i].translate(str.maketrans('', '', string.punctuation))
+        reviews[_i] = reviews[_i].translate(str.maketrans('', '', string.digits))
+        reviews[_i] = contractions.fix(reviews[_i])
+        reviews[_i] = remove_html_tags(reviews[_i])
 
     return reviews
 
 
-def get_labels_texts(file):
+def get_labels_texts(file, limit=10000):
     labels = []
     titles = []
     texts = []
@@ -31,8 +33,8 @@ def get_labels_texts(file):
         titles.append(line[10:line.find(':')].strip())
         texts.append(line[line.find(':') + 1:].strip())
         count += 1
-        # if count > 5:
-        #    break
+        if count > limit:
+            break
     df = pd.DataFrame([preprocess_review(titles), preprocess_review(texts), labels]).T
     df.columns = ['Title', 'Text', 'Label']
     return df
@@ -40,8 +42,8 @@ def get_labels_texts(file):
 
 # %%
 
-test_data = get_labels_texts("E:/Dataset/Amazon Reviews/Test Data/test.ft.txt")
-train_data = get_labels_texts("E:/Dataset/Amazon Reviews/Train Data/train.ft.txt")
+test_data = get_labels_texts("E:/Dataset/Amazon Reviews/Test Data/test.ft.txt", 1000)
+train_data = get_labels_texts("E:/Dataset/Amazon Reviews/Train Data/train.ft.txt", 1750)
 # %%
 combined_data = train_data.append(test_data, ignore_index=True)
 # %%
@@ -69,9 +71,9 @@ for x in sentiments:
             compound.append(x['compound'])
 
 # %%
-df = pd.DataFrame(
+final_df = pd.DataFrame(
     [list(combined_data['Title']), list(combined_data['Text']), list(combined_data['Label']), pos, neg, neu, compound])
-df = df.T
-df.columns = ['Title', 'Text', 'Label', 'Positive', 'Negative', 'Neutral', 'Compound']
+final_df = final_df.T
+final_df.columns = ['Title', 'Text', 'Label', 'Positive', 'Negative', 'Neutral', 'Compound']
 
 # %%
