@@ -23,6 +23,11 @@ def preprocess_review(reviews):
     return reviews
 
 
+def get_max_lines(file):
+    with open(file, 'r', encoding='utf8') as f:
+        return len(f.readlines())
+
+
 def get_labels_texts(file, limit=10000):
     labels = []
     titles = []
@@ -33,47 +38,110 @@ def get_labels_texts(file, limit=10000):
         titles.append(line[10:line.find(':')].strip())
         texts.append(line[line.find(':') + 1:].strip())
         count += 1
-        if count > limit:
+        if count == limit:
             break
     df = pd.DataFrame([preprocess_review(titles), preprocess_review(texts), labels]).T
     df.columns = ['Title', 'Text', 'Label']
     return df
 
 
+def get_train_data(file_path: str, full_file: bool = False, nrows=1000):
+    return get_labels_texts(file_path, (nrows, get_max_lines(file_path))[full_file])
+
+
+def get_test_data(file_path: str, full_file: bool = False, nrows=2500):
+    return get_labels_texts(file_path, (nrows, get_max_lines(file_path))[full_file])
+
+
+def df_append(df1: pd.DataFrame, df2: pd.DataFrame):
+    return df1.append(df2, ignore_index=True)
+
+
+def analyze_sentiment_dataframe(analyze_dataframe):
+    sid = SentimentIntensityAnalyzer()
+    sentiments = []
+
+    for i in analyze_dataframe.index:
+        sentiments.append(sid.polarity_scores(analyze_dataframe['Text'][i]))
+
+    pos = []
+    neg = []
+    neu = []
+    compound = []
+
+    for x in sentiments:
+        for key in x.keys():
+            if key == 'pos':
+                pos.append(x['pos'])
+            elif key == 'neu':
+                neu.append(x['neu'])
+            elif key == 'neg':
+                neg.append(x['neg'])
+            elif key == 'compound':
+                compound.append(x['compound'])
+
+    final_df = pd.DataFrame(
+        [list(analyze_dataframe['Title']), list(analyze_dataframe['Text']), list(analyze_dataframe['Label']), pos, neg,
+         neu, compound])
+    final_df = final_df.T
+    final_df.columns = ['Title', 'Text', 'Label', 'Positive', 'Negative', 'Neutral', 'Compound']
+
+    return final_df
+
+
+def analyze_sentiment_text(text: str):
+    text_sid = SentimentIntensityAnalyzer()
+    return tuple(text_sid.polarity_scores(text).values())
+
+
 # %%
 
-test_data = get_labels_texts("E:/Dataset/Amazon Reviews/Test Data/test.ft.txt", 1000)
-train_data = get_labels_texts("E:/Dataset/Amazon Reviews/Train Data/train.ft.txt", 1750)
-# %%
-combined_data = train_data.append(test_data, ignore_index=True)
-# %%
-sid = SentimentIntensityAnalyzer()
-sentiments = []
+test_file_path = "E:/Dataset/Amazon Reviews/Test Data/test.ft.txt"
+train_file_path = "E:/Dataset/Amazon Reviews/Train Data/train.ft.txt"
 
-for i in combined_data.index:
-    sentiments.append(sid.polarity_scores(combined_data['Text'][i]))
-
+test_data = get_train_data(train_file_path)
+train_data = get_test_data(test_file_path)
+combined_data = df_append(train_data, test_data)
 # %%
-pos = []
-neg = []
-neu = []
-compound = []
 
-for x in sentiments:
-    for key in x.keys():
-        if key == 'pos':
-            pos.append(x['pos'])
-        elif key == 'neu':
-            neu.append(x['neu'])
-        elif key == 'neg':
-            neg.append(x['neg'])
-        elif key == 'compound':
-            compound.append(x['compound'])
+final_result = analyze_sentiment_dataframe(combined_data)
 
-# %%
-final_df = pd.DataFrame(
-    [list(combined_data['Title']), list(combined_data['Text']), list(combined_data['Label']), pos, neg, neu, compound])
-final_df = final_df.T
-final_df.columns = ['Title', 'Text', 'Label', 'Positive', 'Negative', 'Neutral', 'Compound']
+# %% GUI
+
+import PySimpleGUI as sg
+
+Left_Column = [
+    [
+        sg.Text('Type in your emotion'),
+        sg.In(size=(30, 1), enable_events=True, key='-EMOTION-')
+    ],
+    [
+        sg.Button('Analyze', enable_events=True, key='-ANALYZE-BUTTON-')
+    ]
+]
+
+Right_Column = [
+    [
+        sg.Text('Hello')
+    ]
+]
+
+Layout = [
+    [
+        sg.Column(Left_Column),
+        sg.VSeperator(),
+        sg.Column(Right_Column)
+    ]
+]
+window = sg.Window(title='Sentiment Analyser', layout=Layout)
+
+while True:
+    event, values = window.read()
+    if event == 'OK' or event == sg.WIN_CLOSED:
+        break
+    elif event == '-ANALYZE-BUTTON-':
+        print('Analyze')
+
+window.close()
 
 # %%
