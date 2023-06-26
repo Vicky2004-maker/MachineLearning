@@ -1,9 +1,12 @@
 import string
 
 import contractions
+import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import PySimpleGUI as sg
+import matplotlib.pyplot as plt
 
 
 # %%
@@ -91,7 +94,38 @@ def analyze_sentiment_dataframe(analyze_dataframe):
 
 def analyze_sentiment_text(text: str):
     text_sid = SentimentIntensityAnalyzer()
-    return tuple(text_sid.polarity_scores(text).values())
+    _pol_scores = text_sid.polarity_scores(text)
+    return _pol_scores.get('pos'), _pol_scores.get('neg'), _pol_scores.get('neu'), _pol_scores.get('compound')
+
+
+def convert_percentage(_x: list, _n: int):
+    _pos = 0
+    _neg = 0
+    _neu = 0
+
+    for _i_ in _x:
+        if _i_ >= 0.5:
+            _pos += _i_
+        elif _i_ <= -0.5:
+            _neg += _i_
+        elif -0.5 < _i_ < 0.5:
+            _neu += _i_
+
+    return _pos / _n, _neg / _n, _neu / _n
+
+
+def create_pie(_result):
+    plt.pie(_result[:3], labels=['Positive', 'Negative', 'Neutral'], startangle=90, colors=['green', 'red', 'blue'])
+    plt.legend(title='Sentiment Result')
+    plt.savefig('analysis.png', bbox_inches='tight')
+    plt.clf()
+
+
+def update_result_info(_result_):
+    window['-POSITIVE-OUTPUT-'].update(str(_result_[0] * 100) + '%')
+    window['-NEGATIVE-OUTPUT-'].update(str(_result_[1] * 100) + '%')
+    window['-NEUTRAL-OUTPUT-'].update(str(_result_[2] * 100) + '%')
+    window['-COMPOUND-OUTPUT-'].update(_result_[3])
 
 
 # %%
@@ -107,8 +141,6 @@ combined_data = df_append(train_data, test_data)
 # final_result = analyze_sentiment_dataframe(combined_data)
 
 # %% GUI
-
-import PySimpleGUI as sg
 
 Left_Column = [
     [
@@ -181,6 +213,9 @@ Right_Column = [
     ],
     [
         sg.Text('Pie Chart Distribution')
+    ],
+    [
+        sg.Image(enable_events=True, key='-PIE-CHART-')
     ]
 ]
 
@@ -199,10 +234,17 @@ while True:
         break
     elif event == '-ANALYZE-BUTTON-':
         if values['-TEXT-RADIO-']:
+            result = np.array(analyze_sentiment_text(values['-EMOTION-']), dtype='float64')
+            update_result_info(result)
+            create_pie(result)
+            window['-PIE-CHART-'].update('analysis.png')
+            window['-PIE-CHART-'].update(size=(25, 25))
             pass
         elif values['-PRE-RADIO-']:
             pass
         elif values['-LIST-RADIO-']:
+            texts = values['-EMOTION-'].split(';;;')
+            print(texts)
             pass
         elif values['-EXCEL-RADIO-']:
             pass
@@ -211,22 +253,18 @@ while True:
     elif event == '-TEXT-RADIO-':
         window['-INFO-TEXT-'].update('Type in the text')
         window['-EMOTION-'].update(disabled=False)
-        window['-EMOTION-'].update('')
     elif event == '-PRE-RADIO-':
         window['-INFO-TEXT-'].update('Dataset')
         window['-EMOTION-'].update('In-Built Dataset Selected', disabled=True)
     elif event == '-LIST-RADIO-':
         window['-INFO-TEXT-'].update('Type in the list')
         window['-EMOTION-'].update(disabled=False)
-        window['-EMOTION-'].update('')
     elif event == '-EXCEL-RADIO-':
         window['-INFO-TEXT-'].update('Enter the file path')
         window['-EMOTION-'].update(disabled=False)
-        window['-EMOTION-'].update('')
     elif event == '-FILE-RADIO-':
         window['-INFO-TEXT-'].update('Enter the file path')
         window['-EMOTION-'].update(disabled=False)
-        window['-EMOTION-'].update('')
 
 window.close()
 
