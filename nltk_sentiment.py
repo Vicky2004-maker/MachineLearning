@@ -104,7 +104,7 @@ train_data = get_test_data(test_file_path)
 combined_data = df_append(train_data, test_data)
 # %%
 
-final_result = analyze_sentiment_dataframe(combined_data)
+# final_result = analyze_sentiment_dataframe(combined_data)
 
 # %% GUI
 
@@ -112,17 +112,75 @@ import PySimpleGUI as sg
 
 Left_Column = [
     [
-        sg.Text('Type in your emotion'),
+        sg.Text('Chose your input type:'),
+    ],
+    [
+        sg.Radio('Text', group_id=0, enable_events=True, key='-TEXT-RADIO-', default=True),
+        sg.Radio('Pre-build Data', group_id=0, enable_events=True, key='-PRE-RADIO-'),
+        sg.Radio('List', group_id=0, enable_events=True, key='-LIST-RADIO-'),
+        sg.Radio('Excel', group_id=0, enable_events=True, key='-EXCEL-RADIO-'),
+        sg.Radio('File', group_id=0, enable_events=True, key='-FILE-RADIO-'),
+    ],
+    [
+        sg.HSeparator()
+    ],
+    [
+        sg.Text(text='Type in your emotion', key='-INFO-TEXT-', enable_events=True),
         sg.In(size=(30, 1), enable_events=True, key='-EMOTION-')
     ],
     [
+        sg.Button('Clear', enable_events=True, key='-CLEAR-BUTTON-'),
         sg.Button('Analyze', enable_events=True, key='-ANALYZE-BUTTON-')
-    ]
+    ],
+    [
+        sg.HSeparator()
+    ],
+    [
+        sg.Text('Pre-built Dataset Information')
+    ],
+    [
+        sg.Text('This is Amazon review dataset downloaded from Kaggle'),
+    ],
+    [
+        sg.Text('Positive Reviews :'),
+        sg.Text('100')
+    ],
+    [
+        sg.Text('Negative Reviews :'),
+        sg.Text('100')
+    ],
+    [
+        sg.Text('Neutral Reviews :'),
+        sg.Text('100')
+    ],
+
 ]
 
 Right_Column = [
     [
-        sg.Text('Hello')
+        sg.Text('Analysis Result')
+    ],
+    [
+        sg.Text('Positive Texts: '),
+        sg.Text(enable_events=True, key='-POSITIVE-OUTPUT-')
+    ],
+    [
+        sg.Text('Negative Texts: '),
+        sg.Text(enable_events=True, key='-NEGATIVE-OUTPUT-')
+    ],
+    [
+        sg.Text('Neutral Texts: '),
+        sg.Text(enable_events=True, key='-NEUTRAL-OUTPUT-')
+    ],
+    [
+        sg.Text('Compound Score: '),
+        sg.Text(enable_events=True, key='-COMPOUND-OUTPUT-')
+    ],
+    [
+        sg.HSeparator()
+    ],
+    [
+        sg.Text('Pie Chart Distribution')
     ]
 ]
 
@@ -140,7 +198,35 @@ while True:
     if event == 'OK' or event == sg.WIN_CLOSED:
         break
     elif event == '-ANALYZE-BUTTON-':
-        print('Analyze')
+        if values['-TEXT-RADIO-']:
+            pass
+        elif values['-PRE-RADIO-']:
+            pass
+        elif values['-LIST-RADIO-']:
+            pass
+        elif values['-EXCEL-RADIO-']:
+            pass
+        elif values['-FILE-RADIO-']:
+            pass
+    elif event == '-TEXT-RADIO-':
+        window['-INFO-TEXT-'].update('Type in the text')
+        window['-EMOTION-'].update(disabled=False)
+        window['-EMOTION-'].update('')
+    elif event == '-PRE-RADIO-':
+        window['-INFO-TEXT-'].update('Dataset')
+        window['-EMOTION-'].update('In-Built Dataset Selected', disabled=True)
+    elif event == '-LIST-RADIO-':
+        window['-INFO-TEXT-'].update('Type in the list')
+        window['-EMOTION-'].update(disabled=False)
+        window['-EMOTION-'].update('')
+    elif event == '-EXCEL-RADIO-':
+        window['-INFO-TEXT-'].update('Enter the file path')
+        window['-EMOTION-'].update(disabled=False)
+        window['-EMOTION-'].update('')
+    elif event == '-FILE-RADIO-':
+        window['-INFO-TEXT-'].update('Enter the file path')
+        window['-EMOTION-'].update(disabled=False)
+        window['-EMOTION-'].update('')
 
 window.close()
 
