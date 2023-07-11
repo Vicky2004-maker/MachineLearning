@@ -1,8 +1,8 @@
 import string
 
 import contractions
-import numpy as np
 import pandas as pd
+import numpy as np
 from bs4 import BeautifulSoup
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import PySimpleGUI as sg
@@ -18,6 +18,7 @@ def remove_html_tags(text):
 def preprocess_review(reviews):
     for _i in range(len(reviews)):
         reviews[_i] = (reviews[_i]).lower()
+        reviews[_i] = (reviews[_i]).strip()
         reviews[_i] = reviews[_i].translate(str.maketrans('', '', string.punctuation))
         reviews[_i] = reviews[_i].translate(str.maketrans('', '', string.digits))
         reviews[_i] = contractions.fix(reviews[_i])
@@ -60,7 +61,7 @@ def df_append(df1: pd.DataFrame, df2: pd.DataFrame):
     return df1.append(df2, ignore_index=True)
 
 
-def analyze_sentiment_dataframe(analyze_dataframe):
+def analyze_sentiment_dataframe(analyze_dataframe: pd.DataFrame, pre_built=False):
     sid = SentimentIntensityAnalyzer()
     sentiments = []
 
@@ -83,13 +84,20 @@ def analyze_sentiment_dataframe(analyze_dataframe):
             elif key == 'compound':
                 compound.append(x['compound'])
 
-    final_df = pd.DataFrame(
-        [list(analyze_dataframe['Title']), list(analyze_dataframe['Text']), list(analyze_dataframe['Label']), pos, neg,
-         neu, compound])
-    final_df = final_df.T
-    final_df.columns = ['Title', 'Text', 'Label', 'Positive', 'Negative', 'Neutral', 'Compound']
+    if pre_built:
+        final_df = pd.DataFrame(
+            [list(analyze_dataframe['Title']), list(analyze_dataframe['Text']), list(analyze_dataframe['Label']), pos,
+             neg,
+             neu, compound])
+        final_df = final_df.T
+        final_df.columns = ['Title', 'Text', 'Label', 'Positive', 'Negative', 'Neutral', 'Compound']
 
-    return final_df
+        return final_df
+    else:
+        final_df = pd.DataFrame([list(analyze_dataframe['Text']), pos, neg, neu, compound])
+        final_df = final_df.T
+        final_df.columns = ['Text', 'Positive', 'Negative', 'Neutral', 'Compound']
+        return final_df
 
 
 def analyze_sentiment_text(text: str):
@@ -98,7 +106,8 @@ def analyze_sentiment_text(text: str):
     return _pol_scores.get('pos'), _pol_scores.get('neg'), _pol_scores.get('neu'), _pol_scores.get('compound')
 
 
-def convert_percentage(_x: list, _n: int):
+def convert_percentage(_x: list):
+    _n = len(_x)
     _pos = 0
     _neg = 0
     _neu = 0
@@ -115,6 +124,9 @@ def convert_percentage(_x: list, _n: int):
 
 
 def create_pie(_result):
+    _result = list(_result)
+    for ind, val in enumerate(_result):
+        _result[ind] = abs(val)
     plt.pie(_result[:3], labels=['Positive', 'Negative', 'Neutral'], startangle=90, colors=['green', 'red', 'blue'])
     plt.legend(title='Sentiment Result')
     plt.savefig('analysis.png', bbox_inches='tight')
@@ -122,10 +134,16 @@ def create_pie(_result):
 
 
 def update_result_info(_result_):
-    window['-POSITIVE-OUTPUT-'].update(str(_result_[0] * 100) + '%')
-    window['-NEGATIVE-OUTPUT-'].update(str(_result_[1] * 100) + '%')
-    window['-NEUTRAL-OUTPUT-'].update(str(_result_[2] * 100) + '%')
-    window['-COMPOUND-OUTPUT-'].update(_result_[3])
+    window['-POSITIVE-OUTPUT-'].update(str(abs(round(_result_[0] * 100, 3))) + '%')
+    window['-NEGATIVE-OUTPUT-'].update(str(abs(round(_result_[1] * 100, 3))) + '%')
+    window['-NEUTRAL-OUTPUT-'].update(str(abs(round(_result_[2] * 100, 3))) + '%')
+    window['-COMPOUND-OUTPUT-'].update(round(_result_[3], 3))
+
+
+def get_sequential_result(_data_frame: pd.DataFrame):
+    cmp = result_df['Compound'].tolist()
+    p, ne, nu = convert_percentage(cmp)
+    return p, ne, nu, sum(cmp) / len(cmp)
 
 
 # %%
@@ -137,10 +155,9 @@ test_data = get_train_data(train_file_path)
 train_data = get_test_data(test_file_path)
 combined_data = df_append(train_data, test_data)
 # %%
+final_result = analyze_sentiment_dataframe(combined_data)
 
-# final_result = analyze_sentiment_dataframe(combined_data)
-
-# %% GUI
+# %%
 
 Left_Column = [
     [
@@ -171,21 +188,13 @@ Left_Column = [
         sg.Text('Pre-built Dataset Information')
     ],
     [
-        sg.Text('This is Amazon review dataset downloaded from Kaggle'),
-    ],
-    [
-        sg.Text('Positive Reviews :'),
-        sg.Text('100')
-    ],
-    [
-        sg.Text('Negative Reviews :'),
-        sg.Text('100')
-    ],
-    [
-        sg.Text('Neutral Reviews :'),
-        sg.Text('100')
-    ],
-
+        sg.Table(values=[
+            ['Positive', 'pos'],
+            ['Negative', 'neg'],
+            ['Size', '1.649 GB']
+        ],
+            headings=['Features', 'Value'])
+    ]
 ]
 
 Right_Column = [
@@ -219,37 +228,68 @@ Right_Column = [
     ]
 ]
 
+DataFrame_Column = [[]]
+
 Layout = [
     [
         sg.Column(Left_Column),
         sg.VSeperator(),
-        sg.Column(Right_Column)
+        sg.Column(Right_Column),
+        sg.VSeperator(),
+        sg.Column(DataFrame_Column, key='-TABLE-')
     ]
 ]
 window = sg.Window(title='Sentiment Analyser', layout=Layout)
 
 while True:
-    event, values = window.read()
+    event, values = ['', '']
+    # window.read()
     if event == 'OK' or event == sg.WIN_CLOSED:
         break
     elif event == '-ANALYZE-BUTTON-':
         if values['-TEXT-RADIO-']:
-            result = np.array(analyze_sentiment_text(values['-EMOTION-']), dtype='float64')
-            update_result_info(result)
-            create_pie(result)
-            window['-PIE-CHART-'].update('analysis.png')
-            window['-PIE-CHART-'].update(size=(25, 25))
-            pass
+            if len(values['-EMOTION-']) == 0:
+                sg.PopupOK('Please input any value')
+            else:
+                result = np.array(analyze_sentiment_text(values['-EMOTION-']), dtype='float64')
+                update_result_info(result)
+                create_pie(result)
+                window.extend_layout(window['-TABLE-'], [[]])
+                window['-PIE-CHART-'].update('analysis.png')
         elif values['-PRE-RADIO-']:
             pass
         elif values['-LIST-RADIO-']:
-            texts = values['-EMOTION-'].split(';;;')
-            print(texts)
-            pass
+            if len(values['-EMOTION-']) == 0:
+                sg.PopupOK('Please input any value')
+            else:
+                texts = values['-EMOTION-'].split(';;;')
+                input_df = pd.DataFrame(texts, columns=['Text'])
+                result_df = analyze_sentiment_dataframe(input_df)
+                _values = []
+                for i in result_df.index:
+                    _values.append(result_df.loc[i].tolist())
+                _table = sg.Table(values=_values,
+                                  headings=['Text', 'Positive', 'Negative', 'Neutral', 'Compound'],
+                                  key='-TABLE-OUTPUT-')
+                for child in window['-TABLE-'].widget.winfo_children():
+                    child.destroy()
+                window.extend_layout(window['-TABLE-'], [[_table]])
+                _seq_result = get_sequential_result(result_df)
+                update_result_info(_seq_result)
+                create_pie(_seq_result)
+                window['-PIE-CHART-'].update('analysis.png')
         elif values['-EXCEL-RADIO-']:
-            pass
-        elif values['-FILE-RADIO-']:
-            pass
+            _path = str(values['-EMOTION-'])
+            _PATH = ''
+            for ind, char in enumerate(_path):
+                if char == '\\':
+                    _PATH += '/'
+                else:
+                    _PATH += char
+            print(_PATH)
+
+            in_df = pd.read_excel(_path)
+            analyzed_df = analyze_sentiment_dataframe(in_df)
     elif event == '-TEXT-RADIO-':
         window['-INFO-TEXT-'].update('Type in the text')
         window['-EMOTION-'].update(disabled=False)
@@ -267,5 +307,3 @@ while True:
         window['-EMOTION-'].update(disabled=False)
 
 window.close()
-
-# %%
